@@ -1,11 +1,12 @@
 name: "PDU Server"
-version: "v1.0.2"
+version: "1.0.2"
 slug: "pdu_server"
-codenotary: jeesa@example.com   # 可替换为你的邮箱
+codenotary: zhz@honry.net
 description: "MQTT控制的PDU服务器，用于远程电源管理。"
 image: jeesa/pdu-server
 url: https://github.com/jeesa/addons/pdu-server
 init: false
+boot: manual
 arch:
   - aarch64
   - amd64
@@ -13,17 +14,12 @@ apparmor: true
 privileged:
   - SYS_ADMIN
 startup: application
-boot: manual
 
-# 端口从固定改为可配置项（绑定到选项中的 pdu_port）
 ports:
-  "{pdu_port}/tcp": pdu_port
+  "4600/tcp": 4600   # 默认对外暴露端口，如果用户想改只能改这里
 ports_description:
-  "{pdu_port}": "PDU control port"
-ports_description:
-  4600/tcp: 'socket server port'
-ports:
-  4600/tcp: 4600
+  "4600/tcp": "PDU control port"
+
 options:
   mqtt_host: "192.168.2.4"
   mqtt_port: 1883
