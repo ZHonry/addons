@@ -1,0 +1,148 @@
+2.1 socket 连接
+
+首先建立 socket 连接(java 版本)
+
+ServerSocket serverSocket = new ServerSocket(4600);//socket 服务监听端口 4600
+
+Socket incoming = serverSocket.accept();	//等待客户端连接
+
+2.2 验证
+
+建立连接后插座会发送一条验证信息,如：
+
+START login type='PDU' id='5d7ff303832473143227616' device='espeed138' user='admin' password='admin' check='237' END
+
+接收到该信息后(以 START login 开头)，可进行判断插座是否有效等，再回发送：
+
+Login Successful 给插座就可以了。
+
+其中：以 START login 开头，以 END 结尾. Type:不能修改,默认D插座；id：插座芯片的唯一 id，device：插座名称；user/password：插座内部网页的登录名及密码；check:根据附录中的 getCode 方法生成的检验码。
+      
+2.2 补充：
+
+发送 Login Successful 信息给 PDU 后，PDU 会返回一系列信息(防止未连服务器时修改 PDU 信息,服务器在验证 socket 连接后，必须同步以下信息到数据库)，包括以下信息:
+
+a:插口的开关状态: START iostate total='8' io8='254' check='86' END
+
+说明：以 START iostate 开头；total 表示 PDU 的插口数(4,8,16…)；io8 表示各插口的开关二进制状态,
+
+如254=11111110 （二进制）1 代表开,0 代码关。
+
+b:功率电流电压温度实时数据: START PVC P='0' A='0' V='22249' check='52' ...........END
+
+说明:详见实时数据，这里是首次验证后的返回信息，可以不解析，直接解析实时数据
+
+c:PDU 插口名称：START remark name1='output1' s_delay1='0' c_delay1='0'…… END
+
+说明:详见《修改插座口名称》
+
+d:日程信息:START programme1 p_name1='' frequency1='48' ……END
+
+说明:详见《 新增、修改日程》
+
+e:PDU 限制信息:START PVC_setup ph='3000' pl='0' ……END
+
+2.3 取实时数据
+   总电流设备：包含型号（XY-G10  XY-G10-E  XY-G10-1  XY-G10-2）
+发送的指令：START PVC_get check='136' END
+
+接收到的数据（没插温度传感器） :START PVC_Info tag='000000000000' p='0' v='22244' c='0' tflag='0' check='140' END
+
+
+接收到的数据（有温度传感器）:START PVC_Infotag='000000000000' p='9' v='23342' c='4' tflag='1' t='202' f='683' h='356' check='137' END
+
+其中:接收到的数据 以 START PVC_Info 开头，以 END 结尾.
+
+p:功率,v:扩大 100 倍的电压,c:扩大 100 倍的电流,tflag:是否有温度传感器(1:有,0:无),t:扩大 10
+
+倍的温度值,f:华氏,h：湿度。C0-c7：扩大 100 倍的 8 路电流,e:电能10。
+
+check:根据附录中的 getCode 方法生成的检验码 如上面的 111=getCode("PVC_Info p='9' v='23132' c='4' tflag='0'");
+
+以上接收到的数据值为:功率 9w 电压:233.42v 电流:0.04A 温度:20.2C
+
+
+2.4 发送开、关指令
+
+发送：START close io='1' check='202' END
+
+返回：START close io='1' check='202' END
+
+其中:以 START 开始，以 END 结束，close 为关，open 为开 io 为要开/关的插座口(1-8),check为校验码
+
+注:不能一次全开/全关
+
+
+参数 io:二进制模式,如要控制第三个口时，state=4 即 0000 0100 也即 2 的(3-1)次方.即一次可控制多个插座口
+
+服务器 API 响应的数据与服务器下发的数据相同
+
+关闭发送：START close io='1' check='202' END
+开启发送：START open io='1' check='202' END
+
+'1' 二进制表示8个插座。由低到高一次。
+1表示开启，0表示关闭；
+
+例句：（校验位如不正确，请自行修改）此处是服务器下发指令
+START open io='1' check='102' END
+START close io='1' check='202' END
+
+START open io='2' check='103' END
+START close io='2' check='203' END
+
+START open io='4' check='105' END
+START close io='4' check='205' END
+
+START open io='8' check='109' END
+START close io='8' check='209' END
+
+START open io='16' check='156' END
+START close io='16' check='0' END
+
+START open io='32' check='154' END
+START close io='32' check='254' END
+
+START open io='64' check='159' END
+START close io='64' check='3' END
+
+START open io='128' check='208' END
+START close io='128' check='52' END
+
+START close io='255' check='53' END
+START open io='255' check='209' END
+
+
+还有一种特殊情况，这里重点说明下，当在PDU的WEB控制时，PDU会返回和服务器下发不同的指令：
+作用和目的：以此判断是服务器发的指令执行的 还是PDU WEB页面执行，方便分析动作是哪里触发。如果是有WEB控制硬件的需求，请将此情况做对应解析，触发服务器端做对应变化。
+
+例如：开启返回
+START open io='1' check='102' END
+START open io='2' check='103' END
+START open io='3' check='104' END
+START open io='4' check='105' END
+START open io='5' check='106' END
+START open io='6' check='107' END
+START open io='7' check='108' END
+START open io='8' check='109' END
+          关闭返回
+START close io='1' check='202' END
+START close io='2' check='203' END
+START close io='3' check='204' END
+START close io='4' check='205' END
+START close io='5' check='206' END
+START close io='6' check='207' END
+START close io='7' check='208' END
+START close io='8' check='209' END
+
+重启下发指令 1-8（例句）重启默认6S+6S 重启命令发送后，对应回复（对应返回，是代表命令发送成功）。6S后执行重启，返回插孔对应状态。，注意：开关状态是开，重启后是开，开关状态是关，重启后是关。不会出现关闭状态重启后是开，逻辑问题，如果是开，直接开关命令）重启时间固定，暂不支持调整
+START handcontrol state='1' type='Reboot' check='113' END
+START handcontrol state='2' type='Reboot' check='114' END
+START handcontrol state='4' type='Reboot' check='116' END
+START handcontrol state='8' type='Reboot' check='120' END
+START handcontrol state='16' type='Reboot' check='167' END
+START handcontrol state='32' type='Reboot' check='165' END
+START handcontrol state='64' type='Reboot' check='170' END
+START handcontrol state='128' type='Reboot' check='219' END
+
+
+
