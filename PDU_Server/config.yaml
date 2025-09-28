@@ -1,5 +1,5 @@
 name: "PDU Server"
-version: "1.0.2"
+version: "v1.0.2"
 slug: "pdu_server"
 codenotary: zhz@honry.net
 description: "MQTT控制的PDU服务器，用于远程电源管理。"
