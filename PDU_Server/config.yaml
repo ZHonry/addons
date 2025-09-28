@@ -1,28 +1,30 @@
-name: PDU Server
-slug: pdu_server
-description: MQTT控制的PDU服务器，用于远程电源管理。
-url: https://github.com/jeesa/z-addons/pdu-server
-version: v1.0.2
+name: "PDU Server"
+version: "v1.0.2"
+slug: "pdu_server"
+codenotary: jeesa@example.com   # 可替换为你的邮箱
+description: "MQTT控制的PDU服务器，用于远程电源管理。"
 image: jeesa/pdu-server
+url: https://github.com/jeesa/addons/pdu-server
+init: false
 arch:
   - aarch64
   - amd64
 apparmor: true
-
-# 把端口从固定改成可配置项
-ports:
-  "{pdu_port}/tcp": pdu_port
-ports_description:
-  "{pdu_port}": PDU control port
-
 privileged:
   - SYS_ADMIN
-init: false
 startup: application
 boot: manual
 
+# 端口从固定改为可配置项（绑定到选项中的 pdu_port）
+ports:
+  "{pdu_port}/tcp": pdu_port
+ports_description:
+  "{pdu_port}": "PDU control port"
+ports_description:
+  4600/tcp: 'socket server port'
+ports:
+  4600/tcp: 4600
 options:
-  pdu_port: 4600
   mqtt_host: "192.168.2.4"
   mqtt_port: 1883
   mqtt_user: "iot"
@@ -30,7 +32,6 @@ options:
   mqtt_base_topic: "icpdu/switch"
 
 schema:
-  pdu_port: int
   mqtt_host: str
   mqtt_port: int
   mqtt_user: str
