@@ -1,6 +1,6 @@
 name: PDU Server
-slug: pdu-server
-description: 'MQTT控制的PDU服务器，用于远程电源管理'
+slug: pdu_server
+description: MQTT控制的PDU服务器，用于远程电源管理。
 url: https://github.com/jeesa/z-addons/pdu-server
 version: v1.0.2
 image: jeesa/pdu-server
